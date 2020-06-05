@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.Scanner;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -12,6 +13,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 
 public class Controller implements Initializable {
@@ -82,76 +84,48 @@ public class Controller implements Initializable {
                 System.out.println(InputStep.getText());
             }
         });
+        InfoText.setVisible(false);
     }
 
     private void regenerateGraph() {
-        if (stepX <= 0) {ErrorText.setText("Error! Step too small!"); ErrorText.setVisible(true); return;}
-        if (startX >= endX) {ErrorText.setText("Error! Invalid range!"); ErrorText.setVisible(true); return;}
-        if (startX <= 0) {ErrorText.setText("Error! Start value less than or equals zero!"); ErrorText.setVisible(true); return;}
-        if (endX-startX < stepX) {ErrorText.setText("Error! Step is higher than graph range!"); ErrorText.setVisible(true); return;}
-        //System.out.println(startX+" "+endX+" : "+stepX);
+        if (stepX <= 0) {ErrorText.setText("Помилка! Крок замалий!"); ErrorText.setVisible(true); return;}
+        if (startX >= endX) {ErrorText.setText("Помилка! Невірний проміжок!"); ErrorText.setVisible(true); return;}
+        if (startX <= 0) {ErrorText.setText("Помилка! Проміжок повинен починатися\nз координати більше нуля!"); ErrorText.setVisible(true); return;}
+        if (endX-startX < stepX) {ErrorText.setText("Помилка! Крок більше проміжку!"); ErrorText.setVisible(true); return;}
         run();
-        draw();
-    }
-
-    private void draw() {
-        double dx = drawGraph.getWidth(), dy = drawGraph.getHeight(), xMultiplier = dx/(endX-startX), dyMult = maxY+Math.abs(minY), dyDiff = maxY-minY, yMultiplier = -dyDiff*dy/dyMult/8, xOff = xMultiplier*startX, yOff = dy/2;//dy/yMultiplier*dyDiff;
-        GraphicsContext gc = drawGraph.getGraphicsContext2D();
-        gc.clearRect(0,0,dx,dy);
-        gc.setLineWidth(1);
-        gc.setStroke(new Color(0.8,0,0,1));
-        gc.strokeLine(0,dy/2,dx,dy/2);
-        double x_ = 0, y_ = dy/40, aX = startX*xMultiplier;
-        for (int i = 0; i < 11; i++) {
-            gc.strokeLine(x_, dy/2+y_, x_, dy/2-y_);
-            gc.strokeText(String.valueOf(round((x_+aX)/xMultiplier, 3)), x_, dy/2+dy/24);
-            x_+=dx/10;
-        }
-        x_ = dx/48; y_ = dy; aX = dy/2;
-        gc.setStroke(new Color(0,0.8,0,1));
-        for (int i = 0; i < 9; i++) {
-            gc.strokeLine(dx/2+x_, y_, dx/2-x_, y_);
-            gc.strokeText(String.valueOf(round((y_-aX)/yMultiplier, 3)), dx/2+dx/40, y_-dy/24);
-            y_-=dy/8;
-        }
-        gc.strokeLine(dx/2,0,dx/2,dy);
-        gc.setStroke(new Color(1,1,1,1));
-        gc.strokeLine(0,dy/2,points[0].x*xMultiplier-xOff,points[0].y*yMultiplier-yOff);
-        for (int i = 0; i < points.length-1; i++) {
-            gc.strokeLine(points[i].x*xMultiplier-xOff,points[i].y*yMultiplier+yOff,points[i+1].x*xMultiplier-xOff,points[i+1].y*yMultiplier+yOff);
-        }
     }
 
     public void run() {
         infoTextBuild = new StringBuilder();
         double x = startX;
         int n = calcN(stepX);
-        infoTextBuild.append("Steps: ").append(n);
+        infoTextBuild.append("\n\nКількість кроків табулювання: ").append(n);
         points = createArr(n);
         for (int i = 0; i < n; i++) {
-            points[i].x = x;
-            points[i].y = calcY(x,2.2);
+            points[i] = new Point((float)x, (float)calcY(x,2.4));
             x+=stepX;
             //System.out.println(x);
         }
         int maxE_x = getMinMaxNum(points, true, false), minE_x = getMinMaxNum(points, false, false), maxE_y = getMinMaxNum(points, true, true), minE_y = getMinMaxNum(points, false, true);
         double[] xN = getSumAndArif(points, false), yN = getSumAndArif(points, true);
-        infoTextBuild.append(" Xmin = ").append(round(points[minE_x].x, 3)).append(" Xmax = ").append(round(points[maxE_x].x,3)).append(" Ymin = ").append(round(points[minE_y].y,3)).append(" Ymax = ").append(round(points[maxE_y].y,3));
-        infoTextBuild.append("\nXsum = ").append(round(xN[0],3)).append(" Xarif = ").append(round(xN[1],3)).append(" Ysum = ").append(round(yN[0],3)).append(" Yarif = ").append(round(yN[1], 3));
+        infoTextBuild.append("\nМінімальний елемент Х = ").append(round(points[minE_x].x, 3)).append(" Максимальний елемент Х = ").append(round(points[maxE_x].x,3)).append("\nМінімальний елемент Y = ").append(round(points[minE_y].y,3)).append(" Максимальни елемент Y = ").append(round(points[maxE_y].y,3));
+        infoTextBuild.append("\nСума елементів Х = ").append(round(xN[0],3)).append(" Сумма елементів Y = ").append(round(yN[0],3)).append("\nСереднє арифметичне елементів Х = ").append(round(xN[1],3)).append("\nСереднє арифметичне елементів Y = ").append(round(yN[1], 3));
         maxY = points[maxE_y].y; minY = points[minE_y].y;
         InfoText.setText(infoTextBuild.toString());
+        InfoText.setFont(new Font(20));
+        InfoText.setVisible(true);
     }
 
-    private int getMinMaxNum(Point[] arr, boolean max, boolean isYArr) {
+    private int getMinMaxNum(Point[] arr, boolean max, boolean isYArray) {
         double buff = 0;
-        if (isYArr) {
+        if (isYArray) {
             buff = arr[0].y;
         } else {
             buff = arr[0].x;
         }
         int n = 0;
         for (int i = 1; i < arr.length; i++) {
-            if (isYArr) {
+            if (isYArray) {
                 if (arr[i].y < buff && !max) {
                     buff = arr[i].y;
                     n = i;
@@ -172,11 +146,11 @@ public class Controller implements Initializable {
         return n;
     }
 
-    protected double[] getSumAndArif(Point[] arr, boolean isYArr) {
+    protected double[] getSumAndArif(Point[] arr, boolean isYArray) {
         double[] out = new double[2];
         double buff = 0;
         for (int i = 0; i < arr.length; i++) {
-            if (isYArr) {
+            if (isYArray) {
                 buff += arr[i].y;
             } else {
                 buff += arr[i].x;
@@ -188,11 +162,7 @@ public class Controller implements Initializable {
     }
 
     protected Point[] createArr(int amountOfElem) {
-        Point[] points = new Point[amountOfElem];
-        for (int i = 0; i < amountOfElem; i++) {
-            points[i] = new Point(0,0);
-        }
-        return points;
+        return new Point[amountOfElem];
     }
 
     protected int calcN(double step) {
@@ -203,11 +173,13 @@ public class Controller implements Initializable {
         return amount;
     }
 
-    protected double calcY(double x, double t) {
-        if (x <= 0.9) {
-            return (Math.pow(Math.log10(x),3) + x*x)/Math.sqrt(x+t);
-        } else if (x > 0.9) {
-            return Math.cos(x)+t*Math.sin(x)*Math.sin(x);
+    protected double calcY(double x, double a) {
+        if (x > a) {
+            return x*Math.sqrt(x-a);
+        } else if (x == a) {
+            return (x * Math.sin(a) * x);
+        } else if (x < a) {
+            return Math.pow(Math.exp(0),-a*x) * Math.cos(a) * x;
         } else {
             return 0;
         }
